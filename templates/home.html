@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ElectroTrade - Electronics Marketplace{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 6rem 0;
+        margin-bottom: 2rem;
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #0d6efd;
+    }
+    
+    .category-card {
+        transition: transform 0.3s;
+        cursor: pointer;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-10px);
+    }
+    
+    .img-zoom {
+        transition: transform 0.5s;
+    }
+    
+    .card:hover .img-zoom {
+        transform: scale(1.05);
+    }
+    
+    .overlay {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        opacity: 0;
+        transition: .5s ease;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .category-card:hover .overlay {
+        opacity: 1;
+    }
+    
+    .overlay-text {
+        color: white;
+        font-size: 20px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Welcome to ElectroTrade</h1>
+        <p class="lead">Your One-Stop Marketplace for Electronics</p>
+        <div class="d-flex justify-content-center mt-4">
+            <a href="{% url 'products:product_list' %}" class="btn btn-primary btn-lg me-3">
+                <i class="bi bi-search"></i> Browse Products
+            </a>
+            <a href="{% url 'locations:map' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-geo-alt"></i> Find Nearby Stores
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products -->
+<section class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Featured Products</h2>
+            <p class="text-muted">Top electronics picked just for you</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'products:product_list' %}" class="btn btn-outline-primary">
+                View All Products <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    
+    <div class="row row-cols-1 row-cols-md-4 g-4">
+        {% for product in featured_products %}
+        <div class="col">
+            <div class="card h-100 shadow-sm product-card">
+                <div style="overflow: hidden;">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top img-zoom" alt="{{ product.name }}">
+                    {% else %}
+                    <img src="{% static 'images/placeholder.png' %}" class="card-img-top img-zoom" alt="No image">
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-primary">${{ product.price }}</span>
+                        {% if product.discount_price %}
+                        <span class="badge bg-danger">Sale!</span>
+                        {% endif %}
+                    </div>
+                    <p class="card-text small text-muted">{{ product.description|truncatechars:100 }}</p>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between">
+                    <small class="text-muted">By {{ product.seller.username }}</small>
+                    <div>
+                        <a href="{% url 'products:product_detail' pk=product.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> View
+                        </a>
+                        <a href="{% url 'marketplace:add_to_cart' product_id=product.id %}" class="btn btn-sm btn-success">
+                            <i class="bi bi-cart-plus"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No featured products available at the moment.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Categories -->
+<section class="bg-light py-5 mb-5">
+    <div class="container">
+        <h2 class="text-center mb-5">Shop by Category</h2>
+        
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for category in categories %}
+            <div class="col">
+                <a href="{% url 'products:category_detail' slug=category.slug %}" class="text-decoration-none">
+                    <div class="card h-100 category-card">
+                        <div style="height: 200px; overflow: hidden; position: relative;">
+                            {% if category.image %}
+                            <img src="{{ category.image.url }}" class="card-img-top h-100 w-100 img-zoom" style="object-fit: cover;" alt="{{ category.name }}">
+                            {% else %}
+                            <img src="{% static 'images/placeholder.png' %}" class="card-img-top h-100 w-100 img-zoom" style="object-fit: cover;" alt="No image">
+                            {% endif %}
+                            <div class="overlay">
+                                <div class="overlay-text">
+                                    <h4>{{ category.name }}</h4>
+                                    <p>{{ category.products.count }} products</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5 class="card-title">{{ category.name }}</h5>
+                            <p class="card-text text-muted small">{{ category.description|truncatechars:60 }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No categories available at the moment.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="container mb-5">
+    <h2 class="text-center mb-5">Why Shop with Us?</h2>
+    
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <h4>Secure Transactions</h4>
+            <p>All payments and personal information are encrypted and secure. Shop with confidence.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">
+                <i class="bi bi-geo-alt"></i>
+            </div>
+            <h4>Local Sellers</h4>
+            <p>Find electronics from sellers in your area. View their physical stores on our interactive map.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">
+                <i class="bi bi-star"></i>
+            </div>
+            <h4>Quality Products</h4>
+            <p>All our sellers are vetted to ensure you receive high-quality electronics and excellent service.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="bg-primary text-white py-5 mb-5">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Join Our Marketplace?</h2>
+        <p class="lead mb-4">Sign up today and start buying or selling electronics with ease.</p>
+        <div class="d-flex justify-content-center">
+            {% if not user.is_authenticated %}
+            <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg me-3">
+                <i class="bi bi-person-plus"></i> Sign Up
+            </a>
+            <a href="{% url 'account_login' %}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Log In
+            </a>
+            {% else %}
+            <a href="{% url 'products:product_create' %}" class="btn btn-light btn-lg">
+                <i class="bi bi-plus-circle"></i> Start Selling
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Latest News or Blog -->
+<section class="container mb-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Latest Electronics News</h2>
+            <p class="text-muted">Stay up-to-date with the latest trends and releases</p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" class="card-img-top" alt="News 1">
+                <div class="card-body">
+                    <h5 class="card-title">The Future of Wearable Tech</h5>
+                    <p class="card-text">Explore the latest innovations in wearable technology and how they're changing our daily lives.</p>
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">Posted on October 15, 2023</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <img src="https://images.unsplash.com/photo-1592659762303-90081d34b277?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" class="card-img-top" alt="News 2">
+                <div class="card-body">
+                    <h5 class="card-title">Sustainable Electronics: The New Trend</h5>
+                    <p class="card-text">How manufacturers are making more eco-friendly choices and what it means for consumers.</p>
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">Posted on October 10, 2023</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" class="card-img-top" alt="News 3">
+                <div class="card-body">
+                    <h5 class="card-title">Top Budget Laptops for Students</h5>
+                    <p class="card-text">Find the perfect balance of performance and price with these student-friendly laptop options.</p>
+                </div>
+                <div class="card-footer bg-white">
+                    <small class="text-muted">Posted on October 5, 2023</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

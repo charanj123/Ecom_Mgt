@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ seller.get_full_name|default:seller.username }} - ElectroTrade{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Seller Profile Header -->
+    <div class="row mb-4">
+        <div class="col-md-4 text-center">
+            {% if seller.profile_picture %}
+            <img src="{{ seller.profile_picture.url }}" class="rounded-circle mb-3" alt="{{ seller.get_full_name|default:seller.username }}" style="width: 200px; height: 200px; object-fit: cover;">
+            {% else %}
+            <img src="{% static 'images/default-user.png' %}" class="rounded-circle mb-3" alt="Default profile picture" style="width: 200px; height: 200px; object-fit: cover;">
+            {% endif %}
+            
+            <div class="d-flex justify-content-center gap-2 mb-3">
+                {% if seller.rating %}
+                <div class="text-warning">
+                    {% for i in "12345"|make_list %}
+                    {% if forloop.counter <= seller.rating %}
+                    <i class="fas fa-star"></i>
+                    {% else %}
+                    <i class="far fa-star"></i>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <span class="text-muted">({{ seller.total_reviews }})</span>
+                {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-center gap-2">
+                {% if seller.website %}
+                <a href="{{ seller.website }}" class="btn btn-outline-secondary" target="_blank">
+                    <i class="fas fa-globe"></i> Website
+                </a>
+                {% endif %}
+                {% if seller.facebook %}
+                <a href="{{ seller.facebook }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="fab fa-facebook"></i>
+                </a>
+                {% endif %}
+                {% if seller.twitter %}
+                <a href="{{ seller.twitter }}" class="btn btn-outline-info" target="_blank">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                {% endif %}
+                {% if seller.instagram %}
+                <a href="{{ seller.instagram }}" class="btn btn-outline-danger" target="_blank">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <h1>{{ seller.get_full_name|default:seller.username }}</h1>
+            <p class="lead text-muted">@{{ seller.username }}</p>
+            
+            {% if seller.bio %}
+            <div class="mb-4">
+                <h5>About</h5>
+                <p>{{ seller.bio }}</p>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Contact Information</h5>
+                            {% if seller.email %}
+                            <p class="mb-1"><i class="fas fa-envelope"></i> {{ seller.email }}</p>
+                            {% endif %}
+                            {% if seller.phone %}
+                            <p class="mb-1"><i class="fas fa-phone"></i> {{ seller.phone }}</p>
+                            {% endif %}
+                            {% if seller.address %}
+                            <p class="mb-0"><i class="fas fa-map-marker-alt"></i> {{ seller.address }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Seller Statistics</h5>
+                            <p class="mb-1"><i class="fas fa-box"></i> {{ seller.total_products }} Products</p>
+                            <p class="mb-1"><i class="fas fa-shopping-cart"></i> {{ seller.total_sales }} Sales</p>
+                            <p class="mb-0"><i class="fas fa-clock"></i> Member since {{ seller.date_joined|date:"F Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seller's Products -->
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Products</h2>
+            
+            {% if products %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for product in products %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if product.main_image %}
+                        <img src="{{ product.main_image.image.url }}" class="card-img-top" alt="{{ product.title }}">
+                        {% else %}
+                        <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.title }}</h5>
+                            <p class="card-text text-truncate">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 mb-0">${{ product.get_final_price }}</span>
+                                {% if product.discount_price %}
+                                <span class="badge bg-danger">-{{ product.get_discount_percentage }}%</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-info">
+                No products available from this seller.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reviews -->
+    {% if reviews %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="mb-4">Reviews</h2>
+            <div class="row">
+                {% for review in reviews %}
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="card-title mb-0">{{ review.user.get_full_name|default:review.user.username }}</h5>
+                                <div class="text-warning">
+                                    {% for i in "12345"|make_list %}
+                                    {% if forloop.counter <= review.rating %}
+                                    <i class="fas fa-star"></i>
+                                    {% else %}
+                                    <i class="far fa-star"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <p class="card-text">{{ review.comment }}</p>
+                            <small class="text-muted">{{ review.created_at|date:"F d, Y" }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

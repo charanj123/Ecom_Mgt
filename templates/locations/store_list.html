@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Store Locations - ElectroTrade{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Electronics Store Locations</h1>
+            <p class="lead">Find physical stores from our sellers across the country.</p>
+        </div>
+        {% if user.is_seller %}
+        <div class="col-md-4 text-end">
+            <a href="{% url 'locations:store_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Your Store
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Find a Store</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city" value="{{ request.GET.city|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="state" class="form-label">State</label>
+                            <input type="text" class="form-control" id="state" name="state" value="{{ request.GET.state|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="name" class="form-label">Store Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ request.GET.name|default:'' }}">
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                            <a href="{% url 'locations:store_list' %}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if store_locations %}
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for store in store_locations %}
+        <div class="col">
+            <div class="card h-100 shadow-sm hover-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ store.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <i class="bi bi-geo-alt"></i> {{ store.address }}, {{ store.city }}, {{ store.state }} {{ store.zip_code }}
+                    </p>
+                    <p class="card-text">
+                        <i class="bi bi-telephone"></i> {{ store.phone }}
+                    </p>
+                    <p class="card-text">
+                        <i class="bi bi-person"></i> Seller: {{ store.seller.username }}
+                    </p>
+                    {% if store.business_hours %}
+                    <p class="card-text">
+                        <i class="bi bi-clock"></i> <strong>Hours:</strong><br>
+                        <small class="text-muted">{{ store.business_hours|linebreaksbr }}</small>
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Added {{ store.created_at|date:"M d, Y" }}</small>
+                    <a href="{% url 'locations:store_detail' pk=store.id %}" class="btn btn-sm btn-primary">
+                        View Store
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No store locations found. Try adjusting your search criteria or check back later.
+    </div>
+    {% endif %}
+    
+    <div class="text-center mt-4">
+        <a href="{% url 'locations:map' %}" class="btn btn-outline-primary">
+            <i class="bi bi-map"></i> View All Stores on Map
+        </a>
+    </div>
+</div>
+{% endblock %} 

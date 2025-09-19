@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ product.title }} - ElectroTrade{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-md-6">
+            <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% if product.main_image %}
+                    <div class="carousel-item active">
+                        <img src="{{ product.main_image.image.url }}" class="d-block w-100" alt="{{ product.title }}">
+                    </div>
+                    {% endif %}
+                    {% for image in product.images.all %}
+                    <div class="carousel-item">
+                        <img src="{{ image.image.url }}" class="d-block w-100" alt="{{ product.title }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if product.images.count > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="col-md-6">
+            <h1 class="mb-3">{{ product.title }}</h1>
+            
+            <div class="mb-3">
+                <span class="h3">${{ product.get_final_price }}</span>
+                {% if product.discount_price %}
+                <span class="text-decoration-line-through text-muted ms-2">${{ product.price }}</span>
+                <span class="badge bg-danger ms-2">-{{ product.get_discount_percentage }}%</span>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p>{{ product.description }}</p>
+            </div>
+
+            <div class="mb-4">
+                <h5>Category</h5>
+                <a href="{% url 'products:category_detail' product.category.slug %}" class="text-decoration-none">
+                    {{ product.category.name }}
+                </a>
+            </div>
+
+            <div class="mb-4">
+                <h5>Seller</h5>
+                <a href="{% url 'users:seller_detail' product.seller.username %}" class="text-decoration-none">
+                    {{ product.seller.get_full_name|default:product.seller.username }}
+                </a>
+            </div>
+
+            {% if user.is_authenticated and user != product.seller %}
+            <form method="post" action="{% url 'marketplace:add_to_cart' product.pk %}" class="mb-4">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-auto">
+                        <input type="number" name="quantity" class="form-control" value="1" min="1" max="{{ product.stock }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Add to Cart</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+
+            {% if user == product.seller %}
+            <div class="btn-group">
+                <a href="{% url 'products:product_update' product.pk %}" class="btn btn-outline-primary">Edit Product</a>
+                <a href="{% url 'products:product_delete' product.pk %}" class="btn btn-outline-danger">Delete Product</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Related Products -->
+    {% if related_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h2 class="mb-4">Related Products</h2>
+            <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+                {% for product in related_products %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if product.main_image %}
+                        <img src="{{ product.main_image.image.url }}" class="card-img-top" alt="{{ product.title }}">
+                        {% else %}
+                        <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image available">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.title }}</h5>
+                            <p class="card-text text-truncate">{{ product.description }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 mb-0">${{ product.get_final_price }}</span>
+                                {% if product.discount_price %}
+                                <span class="badge bg-danger">-{{ product.get_discount_percentage }}%</span>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'products:product_detail' product.pk %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

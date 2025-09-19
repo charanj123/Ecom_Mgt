@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Map - ElectroTrade{% endblock %}
+
+{% block extra_css %}
+<style>
+    .legend {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    }
+    .legend i {
+        width: 18px;
+        height: 18px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.7;
+    }
+    .info {
+        padding: 6px 8px;
+        background: white;
+        background: rgba(255,255,255,0.8);
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 5px;
+    }
+    .info h4 {
+        margin: 0 0 5px;
+        color: #777;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Find Products and Stores Near You</h1>
+            <p class="lead">Browse our marketplace map to find electronics and stores in your area.</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Search Options</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'locations:map' %}">
+                        <div class="mb-3">
+                            <label for="address" class="form-label">Address</label>
+                            <input type="text" class="form-control" id="address" name="address" value="{{ form.address.value|default:'' }}" placeholder="Enter address, city, or zip code">
+                        </div>
+                        <div class="mb-3">
+                            <label for="distance" class="form-label">Distance (km)</label>
+                            <input type="number" class="form-control" id="distance" name="distance" value="{{ form.distance.value|default:'10' }}" min="1" max="100">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="latitude" class="form-label">Latitude</label>
+                                <input type="text" class="form-control" id="latitude" name="latitude" value="{{ form.latitude.value|default:'' }}" placeholder="e.g. 40.7128">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="longitude" class="form-label">Longitude</label>
+                                <input type="text" class="form-control" id="longitude" name="longitude" value="{{ form.longitude.value|default:'' }}" placeholder="e.g. -74.0060">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-secondary mb-2" id="use-current-location">
+                                <i class="bi bi-geo-alt"></i> Use Current Location
+                            </button>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Search</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if nearby_products %}
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Nearby Products ({{ nearby_products|length }})</h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    <div class="list-group">
+                        {% for product in nearby_products %}
+                        <a href="{% url 'products:product_detail' pk=product.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ product.name }}</h6>
+                                <span class="badge bg-primary rounded-pill">${{ product.price }}</span>
+                            </div>
+                            <p class="mb-1 text-muted">{{ product.seller.username }}</p>
+                            <small>{{ product.location.name }}</small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if nearby_stores %}
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Nearby Stores ({{ nearby_stores|length }})</h5>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    <div class="list-group">
+                        {% for store in nearby_stores %}
+                        <a href="{% url 'locations:store_detail' pk=store.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ store.name }}</h6>
+                            </div>
+                            <p class="mb-1 text-muted">{{ store.seller.username }}</p>
+                            <small>{{ store.address }}, {{ store.city }}</small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="map-container">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize map
+    var map = L.map('map').setView([40.7128, -74.0060], 10);
+    
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Create product marker layer group
+    var productMarkers = L.layerGroup().addTo(map);
+    
+    // Create store marker layer group
+    var storeMarkers = L.layerGroup().addTo(map);
+    
+    // Define marker icons
+    var productIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+    
+    var storeIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+    
+    // Add legend
+    var legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'info legend');
+        div.innerHTML = 
+            '<i style="background: #4CAF50"></i> Products<br>' +
+            '<i style="background: #2196F3"></i> Stores';
+        return div;
+    };
+    legend.addTo(map);
+
+    // Load GeoJSON data
+    function loadMarkers() {
+        // Clear previous markers
+        productMarkers.clearLayers();
+        storeMarkers.clearLayers();
+        
+        // Load products
+        var products = {{ products_geojson|safe }};
+        if (products && products.features) {
+            L.geoJSON(products, {
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng, {icon: productIcon});
+                },
+                onEachFeature: function (feature, layer) {
+                    var props = feature.properties;
+                    var popupContent = '<div class="popup-content">' +
+                        '<h5>' + props.name + '</h5>' +
+                        '<p><strong>Price:</strong> $' + props.price + '</p>' +
+                        '<p><strong>Seller:</strong> ' + props.seller + '</p>' +
+                        '<p><strong>Location:</strong> ' + props.location + '</p>' +
+                        '<a href="/products/' + props.id + '/" class="btn btn-sm btn-primary">View Details</a>' +
+                        '</div>';
+                    layer.bindPopup(popupContent);
+                }
+            }).addTo(productMarkers);
+        }
+        
+        // Load stores
+        var stores = {{ stores_geojson|safe }};
+        if (stores && stores.features) {
+            L.geoJSON(stores, {
+                pointToLayer: function (feature, latlng) {
+                    return L.marker(latlng, {icon: storeIcon});
+                },
+                onEachFeature: function (feature, layer) {
+                    var props = feature.properties;
+                    var popupContent = '<div class="popup-content">' +
+                        '<h5>' + props.name + '</h5>' +
+                        '<p><strong>Seller:</strong> ' + props.seller + '</p>' +
+                        '<p><strong>Address:</strong> ' + props.address + '</p>' +
+                        '<a href="/locations/stores/' + props.id + '/" class="btn btn-sm btn-primary">View Store</a>' +
+                        '</div>';
+                    layer.bindPopup(popupContent);
+                }
+            }).addTo(storeMarkers);
+        }
+        
+        // Fit bounds if any markers exist
+        if ((products && products.features && products.features.length > 0) || 
+            (stores && stores.features && stores.features.length > 0)) {
+            var group = L.featureGroup([productMarkers, storeMarkers]);
+            map.fitBounds(group.getBounds().pad(0.1));
+        }
+    }
+    
+    // Use current location functionality
+    document.getElementById('use-current-location').addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                
+                // Update form fields
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+                
+                // Update map view
+                map.setView([lat, lng], 13);
+                
+                // Add a marker for current location
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup('Your current location')
+                    .openPopup();
+                
+                // Send location to server
+                updateUserLocation(lat, lng);
+            }, function(error) {
+                console.error('Error getting location:', error);
+                alert('Could not get your location. Please check your browser settings.');
+            });
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    });
+    
+    // Update user location in the database
+    function updateUserLocation(lat, lng) {
+        fetch('{% url "locations:update_location" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ latitude: lat, longitude: lng })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Location updated successfully');
+            } else {
+                console.error('Failed to update location:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating location:', error);
+        });
+    }
+    
+    // Load markers when the page loads
+    window.onload = loadMarkers;
+</script>
+{% endblock %} 

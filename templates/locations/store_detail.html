@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ store.name }} - ElectroTrade{% endblock %}
+
+{% block extra_css %}
+<style>
+    .store-map {
+        height: 400px;
+        border-radius: 8px;
+    }
+    .product-card {
+        transition: transform 0.3s;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'locations:store_list' %}">Stores</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ store.name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h1 class="h3 mb-0">{{ store.name }}</h1>
+                    {% if user == store.seller %}
+                    <div>
+                        <a href="{% url 'locations:store_update' pk=store.id %}" class="btn btn-sm btn-light">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
+                        <a href="{% url 'locations:store_delete' pk=store.id %}" class="btn btn-sm btn-danger">
+                            <i class="bi bi-trash"></i> Delete
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-geo-alt"></i> Address</h5>
+                            <p>
+                                {{ store.address }}<br>
+                                {{ store.city }}, {{ store.state }} {{ store.zip_code }}<br>
+                                {{ store.country }}
+                            </p>
+                            
+                            <h5><i class="bi bi-telephone"></i> Contact</h5>
+                            <p>{{ store.phone }}</p>
+                            
+                            <h5><i class="bi bi-person"></i> Seller</h5>
+                            <p>
+                                <a href="{% url 'users:profile_detail' pk=store.seller.id %}">
+                                    {{ store.seller.username }}
+                                </a>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            {% if store.business_hours %}
+                            <h5><i class="bi bi-clock"></i> Business Hours</h5>
+                            <p>{{ store.business_hours|linebreaksbr }}</p>
+                            {% endif %}
+                            
+                            <h5><i class="bi bi-calendar-check"></i> Store Details</h5>
+                            <p>
+                                <strong>Established:</strong> {{ store.created_at|date:"F d, Y" }}<br>
+                                <strong>Status:</strong>
+                                {% if store.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Available Products</h5>
+                </div>
+                <div class="card-body">
+                    {% if products %}
+                    <div class="row row-cols-1 row-cols-md-3 g-4">
+                        {% for product in products %}
+                        <div class="col">
+                            <div class="card h-100 product-card">
+                                {% if product.image %}
+                                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                                {% else %}
+                                <img src="{% static 'images/placeholder.png' %}" class="card-img-top" alt="No image">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ product.name }}</h5>
+                                    <p class="card-text">
+                                        <span class="badge bg-primary">${{ product.price }}</span>
+                                        {% if product.discount_price %}
+                                        <span class="badge bg-danger">Sale!</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="card-text small">{{ product.description|truncatechars:100 }}</p>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{% url 'products:product_detail' pk=product.id %}" class="btn btn-sm btn-primary">View</a>
+                                    <a href="{% url 'marketplace:add_to_cart' product_id=product.id %}" class="btn btn-sm btn-success">
+                                        <i class="bi bi-cart-plus"></i> Add to Cart
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if is_paginated %}
+                    <nav aria-label="Product navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No products available from this store yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Location</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="store-map" class="store-map"></div>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ store.address|urlencode }},{{ store.city|urlencode }},{{ store.state|urlencode }}" 
+                       target="_blank" class="btn btn-outline-primary">
+                        <i class="bi bi-map"></i> Get Directions
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Seller Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        {% if store.seller.profile.avatar %}
+                        <img src="{{ store.seller.profile.avatar.url }}" alt="{{ store.seller.username }}" 
+                             class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                        {% else %}
+                        <img src="{% static 'images/default-user.png' %}" alt="{{ store.seller.username }}" 
+                             class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                        {% endif %}
+                        <h5 class="mt-2">{{ store.seller.username }}</h5>
+                        <p>Member since {{ store.seller.date_joined|date:"F Y" }}</p>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'users:profile_detail' pk=store.seller.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-person-badge"></i> View Profile
+                        </a>
+                        <a href="{% url 'products:seller_products' pk=store.seller.id %}" class="btn btn-outline-success">
+                            <i class="bi bi-shop"></i> View All Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map
+        var map = L.map('store-map').setView([{{ store.point.y }}, {{ store.point.x }}], 15);
+        
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Add store marker
+        var storeIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+        
+        var marker = L.marker([{{ store.point.y }}, {{ store.point.x }}], {icon: storeIcon}).addTo(map);
+        marker.bindPopup("<b>{{ store.name }}</b><br>{{ store.address }}, {{ store.city }}").openPopup();
+    });
+</script>
+{% endblock %} 

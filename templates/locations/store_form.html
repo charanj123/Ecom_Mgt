@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit{% else %}Add{% endif %} Store Location - ElectroTrade
+{% endblock %}
+
+{% block extra_css %}
+{{ form.media.css }}
+<style>
+    .map-wrapper {
+        position: relative;
+    }
+    .map-help {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        background-color: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        max-width: 300px;
+    }
+    .point-field-map {
+        height: 500px !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>{% if form.instance.pk %}Edit{% else %}Add{% endif %} Store Location</h1>
+            <p class="lead">
+                {% if form.instance.pk %}
+                Update your store information and location on the map.
+                {% else %}
+                Register your physical store location to help customers find you.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Store Details</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">Store Name</label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.name.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    {% if form.name.help_text %}
+                                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.address.id_for_label }}" class="form-label">Address</label>
+                                    {{ form.address }}
+                                    {% if form.address.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.address.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.city.id_for_label }}" class="form-label">City</label>
+                                        {{ form.city }}
+                                        {% if form.city.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.city.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.state.id_for_label }}" class="form-label">State</label>
+                                        {{ form.state }}
+                                        {% if form.state.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.state.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.zip_code.id_for_label }}" class="form-label">ZIP Code</label>
+                                        {{ form.zip_code }}
+                                        {% if form.zip_code.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.zip_code.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.country.id_for_label }}" class="form-label">Country</label>
+                                        {{ form.country }}
+                                        {% if form.country.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {% for error in form.country.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number</label>
+                                    {{ form.phone }}
+                                    {% if form.phone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.phone.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.business_hours.id_for_label }}" class="form-label">Business Hours</label>
+                                    {{ form.business_hours }}
+                                    {% if form.business_hours.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.business_hours.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Example: Monday-Friday: 9:00 AM - 6:00 PM<br>Saturday: 10:00 AM - 4:00 PM<br>Sunday: Closed</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                            Active Store (visible to customers)
+                                        </label>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.is_active.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Store Location on Map</label>
+                                    <div class="map-wrapper">
+                                        {{ form.point }}
+                                        <div class="map-help">
+                                            <h6><i class="bi bi-info-circle"></i> How to set location:</h6>
+                                            <p class="small mb-0">
+                                                1. Click on the map to place a marker<br>
+                                                2. Drag the marker to adjust location<br>
+                                                3. Use the search box to find addresses
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if form.point.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.point.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="bi bi-lightbulb"></i> After entering your address details above, 
+                                    click the "Geocode Address" button below to automatically place a marker on the map.
+                                </div>
+                                <button type="button" id="geocode-btn" class="btn btn-outline-secondary mb-3">
+                                    <i class="bi bi-search"></i> Geocode Address
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'locations:store_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 
+                                {% if form.instance.pk %}Update{% else %}Create{% endif %} Store
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form.media.js }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to geocode the address
+        document.getElementById('geocode-btn').addEventListener('click', function() {
+            var address = document.getElementById('{{ form.address.id_for_label }}').value;
+            var city = document.getElementById('{{ form.city.id_for_label }}').value;
+            var state = document.getElementById('{{ form.state.id_for_label }}').value;
+            var zip = document.getElementById('{{ form.zip_code.id_for_label }}').value;
+            var country = document.getElementById('{{ form.country.id_for_label }}').value;
+            
+            var fullAddress = [address, city, state, zip, country].filter(Boolean).join(', ');
+            
+            if (!fullAddress) {
+                alert('Please enter address details to geocode.');
+                return;
+            }
+            
+            // Use OpenStreetMap Nominatim API for geocoding
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
+                        
+                        // Find the map instance
+                        var maps = window.django.leaflet.maps;
+                        var mapId = Object.keys(maps)[0];
+                        var map = maps[mapId];
+                        
+                        // Clear existing markers
+                        map.eachLayer(function(layer) {
+                            if (layer instanceof L.Marker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Add a new marker and set view
+                        L.marker([lat, lon]).addTo(map);
+                        map.setView([lat, lon], 16);
+                        
+                        // Update the hidden input field with the point value
+                        var pointField = document.querySelector('textarea[name="{{ form.point.html_name }}"]');
+                        pointField.value = `POINT(${lon} ${lat})`;
+                    } else {
+                        alert('Could not find location for the given address. Please try to place the marker manually.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error geocoding address:', error);
+                    alert('Error geocoding address. Please try again or place the marker manually.');
+                });
+        });
+        
+        // Apply Bootstrap form classes
+        var formControls = document.querySelectorAll('input[type="text"], input[type="number"], textarea, select');
+        formControls.forEach(function(element) {
+            element.classList.add('form-control');
+        });
+        
+        var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(function(element) {
+            element.classList.add('form-check-input');
+        });
+    });
+</script>
+{% endblock %} 
