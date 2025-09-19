@@ -35,7 +35,7 @@ A comprehensive Django-based e-commerce platform featuring product management, l
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/ecom.git
+   git clone https://github.com/charanj123/Ecom_Mgt.git
    cd ecom
    ```
 
